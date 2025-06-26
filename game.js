@@ -64,6 +64,9 @@ let turretUpgrades = {
 let showPassiveUpgradeMsg = false;
 let passiveMsgTimer = 0;
 
+// --- 一時停止フラグ ---
+let isPaused = false;
+
 // --- タレット外周点 ---
 let playerTurretAngle = -Math.PI / 2;
 let playerTurretTargetAngle = playerTurretAngle;
@@ -176,7 +179,7 @@ function drawPlayer() {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "#3e2c16";
-  ctx.fillText(`HP: ${Math.round(playerHp / 100)} / ${PLAYER_MAX_HP/100}`, PLAYER_X, PLAYER_Y + 48);
+  ctx.fillText(`HP: ${playerHp} / ${PLAYER_MAX_HP}`, PLAYER_X, PLAYER_Y + 48);
   ctx.restore();
 
   drawComboGauge();
@@ -538,7 +541,7 @@ class Enemy {
       ctx.translate(this.x, this.y);
       ctx.rotate(this.angle);
       ctx.beginPath();
-      let polySize = (this.radius + 13) * 1.2;
+      let polySize = this.radius + 24; // 外周多角形だけ大きく
       for (let i = 0; i < n; i++) {
         let a = (2 * Math.PI / n) * i;
         let px = Math.cos(a) * polySize;
@@ -555,7 +558,7 @@ class Enemy {
     // 丸本体
     ctx.save();
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); // 通常サイズ
     ctx.fillStyle = this.recentMiss ? "#ffe0a6" : "#fff9e0";
     ctx.fill();
     ctx.lineWidth = 2;
@@ -617,12 +620,12 @@ class LaserChargerEnemy {
     this.vx = (dx / dist) * 0.13;
     this.vy = (dy / dist) * 0.13;
     this.state = "move";
-    this.chargeTime = 60 + Math.floor(Math.random() * 15);
+    this.chargeTime = (60 + Math.floor(Math.random() * 15)) * 3; // チャージ時間3倍
     this.chargeCounter = 0;
     this.chargeStages = 2;
     this.chargeStage = 0;
     this.angle = Math.random() * Math.PI * 2;
-    this.angleSpeed = -0.025 + Math.random() * 0.05;
+    this.angleSpeed = 0; // 回転しない
     this.dead = false;
     this.laserActive = false;
     this.laserWord = getLaserWord();
@@ -646,7 +649,8 @@ class LaserChargerEnemy {
     if (this.state === "move") {
       this.x += this.vx;
       this.y += this.vy;
-      if (Math.hypot(this.x - PLAYER_X, this.y - PLAYER_Y) < 60) {
+      // チャージ開始範囲を5倍に
+      if (Math.hypot(this.x - PLAYER_X, this.y - PLAYER_Y) < 60 * 5) {
         this.state = "charge";
         this.chargeCounter = 0;
         this.chargeStage = 0;
@@ -700,12 +704,16 @@ class LaserChargerEnemy {
         }
       }
     }
-    this.angle += this.angleSpeed;
+    // this.angle += this.angleSpeed; // 回転しない
   }
   draw() {
     ctx.save();
     ctx.translate(this.x, this.y);
-    ctx.rotate(this.angle);
+    // プレイヤー方向を向く角度を計算
+    let dx = PLAYER_X - this.x;
+    let dy = PLAYER_Y - this.y;
+    let playerAngle = Math.atan2(dy, dx);
+    ctx.rotate(playerAngle);
     ctx.beginPath();
     for (let i = 0; i < 4; i++) {
       let a = Math.PI / 2 * i;
@@ -956,6 +964,11 @@ function updatePlayerTurretAndBurst() {
 
 // --- パッシブ強化UI 入力 ---
 document.addEventListener("keydown", e => {
+  // --- 一時停止ON/OFF ---
+  if (e.key === "Escape" && !showPassiveUpgradeUI && !showPassiveUpgradeMsg && playing && !gameOver) {
+    isPaused = !isPaused;
+    return;
+  }
   if (showPassiveUpgradeUI) {
     if (e.key === "ArrowLeft" || e.key === "a") passiveUpgradeSelectIdx = (passiveUpgradeSelectIdx+3)%4;
     if (e.key === "ArrowRight" || e.key === "d") passiveUpgradeSelectIdx = (passiveUpgradeSelectIdx+1)%4;
@@ -978,7 +991,7 @@ document.addEventListener("keydown", e => {
     playing = false;
     return;
   }
-  if (!playing || gameOver) return;
+  if (!playing || gameOver || isPaused) return;
   const key = e.key;
 
   // --- レーザー迎撃や本体攻撃など省略 ---
@@ -1114,13 +1127,35 @@ function spawnEnemy() {
 }
 
 // --- UPDATE/DRAW/LOOP ---
+let lastUpdateTime = 0;
+const updateInterval = 1000 / 60; // 16.666ms
+
+function gameLoop(timestamp) {
+  if (!lastUpdateTime) lastUpdateTime = timestamp;
+  const elapsed = timestamp - lastUpdateTime;
+  if (elapsed >= updateInterval) {
+    if (playing && !gameOver && !showPassiveUpgradeUI && !isPaused) {
+      spawnTimer++;
+      if (spawnTimer > Math.round(spawnInterval / 0.66)) {
+        spawnEnemy();
+        spawnTimer = 0;
+      }
+      update();
+    }
+    lastUpdateTime = timestamp;
+  }
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
 function update() {
   if (gameOver || !playing) return;
   coolTurret();
   updatePlayerTurretAndBurst();
   enemies.forEach(e => e.update());
   bullets.forEach(b => b.update());
-  bullets = bullets.filter(b => b.isActive() && !b.hit);
+  // 弾は当たるか画面外に出るまで残す
+  bullets = bullets.filter(b => b.isActive());
   for (let e of enemies) {
     if (e.dead && !e.counted) {
       score++;
@@ -1173,6 +1208,25 @@ function draw() {
     drawPassiveUpgradeUI();
   }
 
+  // 一時停止画面
+  if (isPaused) {
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "#f9f8ec";
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.globalAlpha = 1;
+    ctx.font = "bold 60px 'Fira Mono', Consolas, monospace";
+    ctx.fillStyle = "#b08a4c";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("PAUSED", CANVAS_W / 2, CANVAS_H / 2 - 30);
+    ctx.font = "bold 28px 'Fira Mono', Consolas, monospace";
+    ctx.fillStyle = "#938066";
+    ctx.fillText("ESCキーで再開", CANVAS_W / 2, CANVAS_H / 2 + 32);
+    ctx.restore();
+    return;
+  }
+
   // ゲームオーバー
   if (gameOver) {
     ctx.save();
@@ -1188,14 +1242,19 @@ function draw() {
   }
 }
 
-function gameLoop() {
-  if (playing && !gameOver && !showPassiveUpgradeUI) {
-    spawnTimer++;
-    if (spawnTimer > Math.round(spawnInterval / 0.66)) {
-      spawnEnemy();
-      spawnTimer = 0;
+function gameLoop(timestamp) {
+  if (!lastUpdateTime) lastUpdateTime = timestamp;
+  const elapsed = timestamp - lastUpdateTime;
+  if (elapsed >= updateInterval) {
+    if (playing && !gameOver && !showPassiveUpgradeUI) {
+      spawnTimer++;
+      if (spawnTimer > Math.round(spawnInterval / 0.66)) {
+        spawnEnemy();
+        spawnTimer = 0;
+      }
+      update();
     }
-    update();
+    lastUpdateTime = timestamp;
   }
   draw();
   requestAnimationFrame(gameLoop);
