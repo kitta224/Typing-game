@@ -258,10 +258,9 @@ function drawKillCounter() {
 // --- パッシブ強化UI ---
 function drawPassiveUpgradeUI() {
   ctx.save();
-  ctx.globalAlpha = 0.94;
-  // ==== 背景サイズを大きく修正 ====
-  // 旧: ctx.fillRect(CANVAS_W/2-210, CANVAS_H/2-120, 420, 220);
-  // 新: 画面の8割程度をカバーする大きな半透明背景
+  ctx.globalAlpha = 0.96;
+
+  // 背景
   const bgW = Math.min(CANVAS_W * 0.88, 680);
   const bgH = Math.min(CANVAS_H * 0.82, 400);
   const bgX = (CANVAS_W - bgW) / 2;
@@ -269,87 +268,155 @@ function drawPassiveUpgradeUI() {
   ctx.fillStyle = "#f9f8ec";
   ctx.fillRect(bgX, bgY, bgW, bgH);
 
-  ctx.font = "bold 28px 'Fira Mono', Consolas, monospace";
+  // タイトル等
+  ctx.font = "bold 32px 'Fira Mono', Consolas, monospace";
   ctx.fillStyle = "#b08a4c";
   ctx.textAlign = "center";
-  ctx.fillText("メインタレット:パッシブ レベルアップ", CANVAS_W/2, bgY + 50);
+  ctx.fillText("パッシブ強化（タレット横2Dビュー）", CANVAS_W/2, bgY + 48);
 
-  ctx.font = "16px 'Fira Mono', Consolas, monospace";
+  ctx.font = "17px 'Fira Mono', Consolas, monospace";
   ctx.fillStyle = "#444";
-  ctx.fillText("スペースキーで選択。矢印キーで選択移動。", CANVAS_W/2, bgY + 80);
+  ctx.fillText("矢印キーで部位選択、スペースで強化、Escで閉じる", CANVAS_W/2, bgY + 82);
 
   ctx.font = "bold 16px 'Fira Mono', Consolas, monospace";
   ctx.fillStyle = "#888";
-  ctx.fillText(`パッシブポイント: ${passivePoints}`, CANVAS_W/2, bgY + 108);
+  ctx.fillText(`パッシブポイント: ${passivePoints}`, CANVAS_W/2, bgY + 112);
 
-  // タレット図（簡易2D）
-  ctx.save();
-  ctx.translate(CANVAS_W/2, bgY + 180);
-  ctx.lineWidth = 2;
-  // コア
-  ctx.beginPath();
-  ctx.arc(0,0,25,0,Math.PI*2);
-  ctx.fillStyle = "#fffbe7";
-  ctx.strokeStyle = "#b08a4c";
-  ctx.fill();
-  ctx.stroke();
-  // 銃身
-  ctx.save();
-  ctx.rotate(-Math.PI/2);
-  ctx.fillStyle = "#e5e5e5";
-  ctx.fillRect(-5,-34,10,18);
-  ctx.restore();
-  // 回路
-  ctx.beginPath();
-  ctx.arc(-25,0,8,0,Math.PI*2);
-  ctx.fillStyle = "#aee";
-  ctx.fill();
-  // 供給
-  ctx.beginPath();
-  ctx.arc(25,0,8,0,Math.PI*2);
-  ctx.fillStyle = "#be8";
-  ctx.fill();
-  ctx.restore();
+  // タレット横から見た2D図
+  // 図の基準点
+  const baseX = CANVAS_W/2, baseY = bgY + bgH/2 + 10;
 
-  // 選択肢
-  const ox = CANVAS_W/2, oy = bgY + 180;
-  const opts = [
-    {x: ox-60, y: oy}, // 回路
-    {x: ox,     y: oy-40}, // 銃身
-    {x: ox+60, y: oy}, // 供給
-    {x: ox,     y: oy+50} // コア
+  // 部位座標
+  const parts = [
+    {   // 回路 (後部基板)
+      key: "overclock",
+      x: baseX - 90, y: baseY - 15, w: 36, h: 18,
+      draw: (highlight) => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(baseX - 108, baseY - 20, 36, 18);
+        ctx.fillStyle = highlight ? "#aef" : "#e7f7ff";
+        ctx.shadowColor = highlight ? "#3cf" : "#fff";
+        ctx.shadowBlur = highlight ? 17 : 0;
+        ctx.fill();
+        ctx.lineWidth = highlight ? 4 : 2;
+        ctx.strokeStyle = highlight ? "#3caaff" : "#b08a4c";
+        ctx.stroke();
+        ctx.restore();
+        // ラベル
+        ctx.save();
+        ctx.font = "bold 12px 'Fira Mono', Consolas, monospace";
+        ctx.fillStyle = "#2b8cae";
+        ctx.textAlign = "center";
+        ctx.fillText("回路", baseX - 90, baseY - 28);
+        ctx.restore();
+      }
+    },
+    {   // 銃身 (砲身)
+      key: "cooling",
+      x: baseX + 58, y: baseY - 9, w: 60, h: 14,
+      draw: (highlight) => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(baseX + 28, baseY - 16, 60, 14);
+        ctx.fillStyle = highlight ? "#ffd686" : "#fff3c9";
+        ctx.shadowColor = highlight ? "#ffe082" : "#fff";
+        ctx.shadowBlur = highlight ? 15 : 0;
+        ctx.fill();
+        ctx.lineWidth = highlight ? 4 : 2;
+        ctx.strokeStyle = highlight ? "#ff8a2f" : "#b08a4c";
+        ctx.stroke();
+        ctx.restore();
+        // ラベル
+        ctx.save();
+        ctx.font = "bold 12px 'Fira Mono', Consolas, monospace";
+        ctx.fillStyle = "#b08a4c";
+        ctx.textAlign = "center";
+        ctx.fillText("銃身", baseX + 60, baseY - 22);
+        ctx.restore();
+      }
+    },
+    {   // 供給 (給弾部下部)
+      key: "capacity",
+      x: baseX - 10, y: baseY + 30, w: 32, h: 16,
+      draw: (highlight) => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(baseX - 16, baseY + 24, 32, 16);
+        ctx.fillStyle = highlight ? "#caffb0" : "#f2ffe0";
+        ctx.shadowColor = highlight ? "#85e63b" : "#fff";
+        ctx.shadowBlur = highlight ? 13 : 0;
+        ctx.fill();
+        ctx.lineWidth = highlight ? 4 : 2;
+        ctx.strokeStyle = highlight ? "#5ea12c" : "#b08a4c";
+        ctx.stroke();
+        ctx.restore();
+        // ラベル
+        ctx.save();
+        ctx.font = "bold 12px 'Fira Mono', Consolas, monospace";
+        ctx.fillStyle = "#5ea12c";
+        ctx.textAlign = "center";
+        ctx.fillText("供給", baseX, baseY + 60);
+        ctx.restore();
+      }
+    },
+    {   // コア (本体中央)
+      key: "response",
+      x: baseX, y: baseY, r: 28,
+      draw: (highlight) => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(baseX, baseY, 28, 0, Math.PI*2);
+        ctx.fillStyle = highlight ? "#ffeacc" : "#fffbe7";
+        ctx.shadowColor = highlight ? "#ff8a2f" : "#cab88a";
+        ctx.shadowBlur = highlight ? 14 : 0;
+        ctx.fill();
+        ctx.lineWidth = highlight ? 5 : 2;
+        ctx.strokeStyle = highlight ? "#ff8a2f" : "#b08a4c";
+        ctx.stroke();
+        ctx.restore();
+        // ラベル
+        ctx.save();
+        ctx.font = "bold 13px 'Fira Mono', Consolas, monospace";
+        ctx.fillStyle = "#b08a4c";
+        ctx.textAlign = "center";
+        ctx.fillText("コア", baseX, baseY + 4);
+        ctx.restore();
+      }
+    }
   ];
-  for (let i=0;i<4;i++) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(opts[i].x,opts[i].y,18,0,Math.PI*2);
-    ctx.strokeStyle = (i===passiveUpgradeSelectIdx) ? "#ff8a2f" : "#b08a4c";
-    ctx.lineWidth = (i===passiveUpgradeSelectIdx)?4:2;
-    ctx.stroke();
-    ctx.restore();
 
-    ctx.save();
-    ctx.font = "bold 15px 'Fira Mono', Consolas, monospace";
-    ctx.fillStyle = "#555";
-    ctx.textAlign = "center";
-    ctx.fillText(passiveUpgradeList[i].title, opts[i].x, opts[i].y+5);
-    ctx.restore();
-  }
-  // 選択中ツールチップ
+  // 本体描画（順序：補助パーツ→本体）
+  // タレット足
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(baseX - 9, baseY + 34, 18, 16);
+  ctx.fillStyle = "#b0b0b0";
+  ctx.globalAlpha = 0.22;
+  ctx.fill();
+  ctx.restore();
+
+  // 供給（下部）→回路（後部）→本体→砲身
+  parts[2].draw(passiveUpgradeSelectIdx === 2);
+  parts[0].draw(passiveUpgradeSelectIdx === 0);
+  parts[3].draw(passiveUpgradeSelectIdx === 3);
+  parts[1].draw(passiveUpgradeSelectIdx === 1);
+
+  // 選択チップ説明
   const sel = passiveUpgradeList[passiveUpgradeSelectIdx];
   ctx.save();
-  ctx.font = "bold 18px 'Fira Mono', Consolas, monospace";
+  ctx.font = "bold 20px 'Fira Mono', Consolas, monospace";
   ctx.fillStyle = "#ff8a2f";
   ctx.textAlign = "center";
-  ctx.fillText(sel.title, CANVAS_W/2, bgY + bgH - 70);
+  ctx.fillText(sel.title, CANVAS_W/2, bgY + bgH - 74);
 
-  ctx.font = "italic 14px 'Fira Mono', Consolas, monospace";
+  ctx.font = "italic 15px 'Fira Mono', Consolas, monospace";
   ctx.fillStyle = "#b08a4c";
   ctx.fillText(sel.subtitle, CANVAS_W/2, bgY + bgH - 48);
 
   ctx.font = "14px 'Fira Mono', Consolas, monospace";
   ctx.fillStyle = "#4c3b18";
-  ctx.fillText(sel.desc, CANVAS_W/2, bgY + bgH - 25);
+  ctx.fillText(sel.desc, CANVAS_W/2, bgY + bgH - 24);
   ctx.restore();
 
   ctx.restore();
