@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Typing Survival Neo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+        html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #fffbe7;
+      color: #3e2c16;
+      font-family: 'Fira Mono', Consolas, monospace;
+      overflow: hidden;
+    }
+    body {
+      min-height: 100vh;
+      text-align: center;
+    }
+    #restart-btn, #start-btn {
+      display: none;
+      margin: 20px auto;
+      background: #ffeacc;
+      color: #3e2c16;
+      font-family: inherit;
+      font-size: 1.2em;
+      border: 2px solid #cab88a;
+      border-radius: 8px;
+      padding: 10px 36px;
+      box-shadow: none;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      z-index: 20;
+      position: relative;
+    }
+    #restart-btn:hover, #start-btn:hover {
+      background: #ffe0a6;
+      color: #b08a4c;
+    }
+    #title-screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(255,251,231,0.98);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #title-main {
+      font-size: 2.7em;
+      color: #b08a4c;
+      margin-bottom: 24px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-shadow: none;
+    }
+    #title-desc {
+      color: #938066;
+      margin-bottom: 32px;
+      font-size: 1.1em;
+      line-height: 1.6;
+    }
+    #game {
+      display: block;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: none;
+      border: 2px solid #f2e5c3;
+      position: absolute;
+      left: 0; top: 0;
+      z-index: 1;
+    }
+    #score, #info, h1 {
+      display: none;
+    }
+    .wordset-select {
+      margin: 18px 0 10px 0;
+      font-size: 1.1em;
+      border-radius: 6px;
+      border: 1.5px solid #cab88a;
+      background: #fffbe7;
+      color: #3e2c16;
+      padding: 4px 18px;
+      appearance: none;
+      outline: none;
+    }
+    .wordset-select:focus {
+      border-color: #b08a4c;
+    }
+  </style>
+</head>
+<body>
+  <div id="title-screen">
+    <div id="title-main">Typing Survival Neo</div>
+    <div id="title-desc">
+      タイプして敵を撃退せよ！<br>
+      敵は直線で自機（中央）に向かってきます。<br>
+      タイプミスでリセット、本家風バトル。<br><br>
+      <span style="color:#cf9100">Enterキーでプレイも可能</span>
+    </div>
+    <select id="wordset-select" class="wordset-select">
+      <option value="en">英単語</option>
+      <option value="code">プログラミング/コード用語</option>
+    </select>
+    <button id="start-btn">プレイ</button>
+  </div>
+  <h1>Typing Survival Neo</h1>
+  <div id="info">タイプして敵を撃退せよ！</div>
+  <div id="score">SCORE: 0</div>
+  <canvas id="game"></canvas>
+  <button id="restart-btn">リスタート</button>
+  <script src="words.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
