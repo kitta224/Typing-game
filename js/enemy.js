@@ -20,8 +20,8 @@ class Enemy {
   update() {
     if (this.dead) return;
     if (this.type === "normal") {
-      const dx = PLAYER_X - this.x;
-      const dy = PLAYER_Y - this.y;
+      const dx = window.PLAYER_X - this.x;
+      const dy = window.PLAYER_Y - this.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist > 1) {
         this.x += (dx / dist) * this.speed * frameDelta;
@@ -29,8 +29,8 @@ class Enemy {
       }
     } else if (this.type === "laser") {
       if (this.state === "move") {
-        const dx = PLAYER_X - this.x;
-        const dy = PLAYER_Y - this.y;
+        const dx = window.PLAYER_X - this.x;
+        const dy = window.PLAYER_Y - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist > 1) {
           this.x += (dx / dist) * this.speed * frameDelta;
@@ -62,8 +62,8 @@ class Enemy {
     ctx.restore();
   }
   isAtPlayer() {
-    const dx = PLAYER_X - this.x;
-    const dy = PLAYER_Y - this.y;
+    const dx = window.PLAYER_X - this.x;
+    const dy = window.PLAYER_Y - this.y;
     return Math.sqrt(dx * dx + dy * dy) < this.radius + 18;
   }
 }
@@ -89,15 +89,15 @@ class LaserChargerEnemy {
   update() {
     if (this.dead) return;
     if (this.state === "move") {
-      const dx = PLAYER_X - this.x;
-      const dy = PLAYER_Y - this.y;
+      const dx = window.PLAYER_X - this.x;
+      const dy = window.PLAYER_Y - this.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist > 1) {
         this.x += (dx / dist) * this.speed * frameDelta;
         this.y += (dy / dist) * this.speed * frameDelta;
       }
       // プレイヤーに近づいたらチャージ開始
-      if (Math.sqrt((PLAYER_X - this.x) ** 2 + (PLAYER_Y - this.y) ** 2) < 120) {
+      if (Math.sqrt((window.PLAYER_X - this.x) ** 2 + (window.PLAYER_Y - this.y) ** 2) < 120) {
         this.state = "charge";
         this.laserTimer = 0;
         this.laserDuration = 60 + Math.random() * 40;
@@ -156,16 +156,37 @@ class LaserChargerEnemy {
       ctx.lineWidth = 16;
       ctx.beginPath();
       ctx.moveTo(this.x, this.y);
-      ctx.lineTo(PLAYER_X, PLAYER_Y);
+      ctx.lineTo(window.PLAYER_X, window.PLAYER_Y);
       ctx.stroke();
       ctx.restore();
       ctx.save();
       ctx.font = "bold 22px 'Fira Mono', Consolas, monospace";
       ctx.fillStyle = "#90d7f1";
       ctx.textAlign = "center";
-      ctx.fillText(this.laserWord, (this.x + PLAYER_X) / 2, (this.y + PLAYER_Y) / 2 - 18);
+      ctx.fillText(this.laserWord, (this.x + window.PLAYER_X) / 2, (this.y + window.PLAYER_Y) / 2 - 18);
       ctx.restore();
     }
     ctx.restore();
   }
 }
+
+// すべての変数・関数はwindow.で参照・代入
+// 例: window.spawnEnemy = function() {...} など
+
+// --- ENEMYクラス ---
+window.Enemy = Enemy;
+window.LaserChargerEnemy = LaserChargerEnemy;
+
+function onEnemyKilled() {
+  // ...本体...
+}
+window.onEnemyKilled = onEnemyKilled;
+
+function spawnEnemy() {
+  // ...スポーン処理本体...
+}
+window.spawnEnemy = spawnEnemy;
+
+window.enemies = window.enemies || [];
+window.phase = window.phase || 1;
+window.words = window.words || [];

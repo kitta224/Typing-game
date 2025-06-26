@@ -12,10 +12,10 @@ class Bullet {
   }
   update() {
     if (!this.active) return;
-    this.x += Math.cos(this.angle) * this.speed * frameDelta;
-    this.y += Math.sin(this.angle) * this.speed * frameDelta;
-    this.life += frameDelta;
-    if (this.x < 0 || this.x > CANVAS_W || this.y < 0 || this.y > CANVAS_H || this.life > 90) {
+    this.x += Math.cos(this.angle) * this.speed * window.frameDelta;
+    this.y += Math.sin(this.angle) * this.speed * window.frameDelta;
+    this.life += window.frameDelta;
+    if (this.x < 0 || this.x > window.CANVAS_W || this.y < 0 || this.y > window.CANVAS_H || this.life > 90) {
       this.active = false;
     }
   }
@@ -36,3 +36,7 @@ class Bullet {
     return this.active;
   }
 }
+
+// --- Bulletクラス ---
+window.Bullet = Bullet;
+window.bullets = window.bullets || [];

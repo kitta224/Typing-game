@@ -107,19 +107,27 @@
       <option value="en">英単語</option>
       <option value="code">プログラミング/コード用語</option>
     </select>
-    <button id="start-btn">プレイ</button>
+    <button id="start-btn" style="display:inline-block; margin-top:18px;">▶ ゲーム開始</button>
   </div>
   <h1>Typing Survival Neo</h1>
   <div id="info">タイプして敵を撃退せよ！</div>
   <div id="score">SCORE: 0</div>
   <canvas id="game"></canvas>
   <button id="restart-btn">リスタート</button>
-    <!-- 新しいモジュール化されたJSファイルを正しい順序で読み込む -->
-    <script src="js/utils.js"></script>
-    <script src="js/player.js"></script>
-    <script src="js/enemy.js"></script>
-    <script src="js/bullet.js"></script>
-    <script src="js/passive.js"></script>
+    <!-- スクリプト読み込み順をモジュール依存順に調整 -->
     <script src="game.js"></script>
+    <script src="words.js"></script>
+    <script>
+      window.addEventListener("keydown", function(e) {
+        // startGameがグローバルに存在し、titleScreenも取得できている場合のみ発火
+        if (typeof window.startGame === "function" && window.titleScreen && window.titleScreen.style.display !== "none" && (e.key === "Enter" || e.key === "NumpadEnter")) {
+          window.startGame();
+        }
+      });
+      // 新しい「ゲーム開始」ボタンのクリックイベント
+      document.getElementById("start-btn").onclick = function() {
+        if (typeof window.startGame === "function") window.startGame();
+      };
+    </script>
 </body>
 </html>

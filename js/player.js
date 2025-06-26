@@ -1,21 +1,40 @@
 // --- プレイヤー・タレット関連 変数 ---
-let PLAYER_X = 0, PLAYER_Y = 0, CANVAS_W = 0, CANVAS_H = 0;
-let playerHp = PLAYER_MAX_HP;
-let comboLevel = 0;
-let comboCount = 0;
-let maxComboLevel = 0;
-let turretHeat = 0;
-let turretHeatMax = 1.0;
-let turretHeatPerBurst = 0.13;
-let turretCoolingPerFrame = 0.015;
-let turretOverheated = false;
-let playerTurretAngle = -Math.PI / 2;
-let playerTurretTargetAngle = playerTurretAngle;
-let playerTurretTurning = false;
-let playerTurretTurnSpeed = 0.13;
-let playerBurstQueue = [];
-let playerBurstTimer = 0;
-let playerBurstStep = 0;
+window.PLAYER_X = window.PLAYER_X || 0;
+window.PLAYER_Y = window.PLAYER_Y || 0;
+window.CANVAS_W = window.CANVAS_W || 0;
+window.CANVAS_H = window.CANVAS_H || 0;
+window.playerHp = window.playerHp || window.PLAYER_MAX_HP;
+window.comboLevel = window.comboLevel || 0;
+window.comboCount = window.comboCount || 0;
+window.maxComboLevel = window.maxComboLevel || 0;
+window.turretHeat = window.turretHeat || 0;
+window.turretHeatMax = window.turretHeatMax || 1.0;
+window.turretHeatPerBurst = window.turretHeatPerBurst || 0.13;
+window.turretCoolingPerFrame = window.turretCoolingPerFrame || 0.015;
+window.turretOverheated = window.turretOverheated || false;
+window.playerTurretAngle = window.playerTurretAngle || -Math.PI / 2;
+window.playerTurretTargetAngle = window.playerTurretTargetAngle || window.playerTurretAngle;
+window.playerTurretTurning = window.playerTurretTurning || false;
+window.playerTurretTurnSpeed = window.playerTurretTurnSpeed || 0.13;
+window.playerBurstQueue = window.playerBurstQueue || [];
+window.playerBurstTimer = window.playerBurstTimer || 0;
+window.playerBurstStep = window.playerBurstStep || 0;
+window.turretKillCounter = window.turretKillCounter || 0;
+window.turretKillCounterMax = window.turretKillCounterMax || 30;
+window.turretKillCounterNextMul = window.turretKillCounterNextMul || 1.75;
+window.turretUpgrades = window.turretUpgrades || { overclock: 0, cooling: 0, capacity: 0, response: 0 };
+window.passivePoints = window.passivePoints || 0;
+window.showPassiveUpgradeUI = window.showPassiveUpgradeUI || false;
+window.passiveUpgradeSelectIdx = window.passiveUpgradeSelectIdx || 0;
+window.passiveUpgradeList = window.passiveUpgradeList || [
+  { key: "overclock", title: "回路", subtitle: "オーバークロック", desc: "ダメージ+2%・加熱+1%" },
+  { key: "cooling", title: "銃身", subtitle: "冷却強化", desc: "冷却速度+2%" },
+  { key: "capacity", title: "供給", subtitle: "キャパシティ増加", desc: "キャパシティ+2.5%(4Lv毎にバースト+1)" },
+  { key: "response", title: "コア", subtitle: "反応速度", desc: "連射速度+2%" }
+];
+window.passiveUpgradeParts = window.passiveUpgradeParts || [];
+window.showPassiveUpgradeMsg = window.showPassiveUpgradeMsg || false;
+window.passiveMsgTimer = window.passiveMsgTimer || 0;
 
 // --- プレイヤー描画 ---
 function drawPlayer() {
@@ -53,7 +72,7 @@ function drawPlayer() {
   ctx.fillStyle = "#f2e5c3";
   ctx.fillRect(PLAYER_X - hpBarW / 2, PLAYER_Y + 40, hpBarW, hpBarH);
   ctx.fillStyle = "#b08a4c";
-  ctx.fillRect(PLAYER_X - hpBarW / 2, PLAYER_Y + 40, hpBarW * (playerHp / PLAYER_MAX_HP), hpBarH);
+  ctx.fillRect(PLAYER_X - hpBarW / 2, PLAYER_Y + 40, hpBarW * (window.playerHp / PLAYER_MAX_HP), hpBarH);
   ctx.strokeStyle = "#cab88a";
   ctx.lineWidth = 2;
   ctx.strokeRect(PLAYER_X - hpBarW / 2, PLAYER_Y + 40, hpBarW, hpBarH);
@@ -61,7 +80,7 @@ function drawPlayer() {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "#3e2c16";
-  ctx.fillText(`HP: ${Math.round(playerHp / 100)} / ${PLAYER_MAX_HP/100}`, PLAYER_X, PLAYER_Y + 48);
+  ctx.fillText(`HP: ${Math.round(window.playerHp / 100)} / ${PLAYER_MAX_HP/100}`, PLAYER_X, PLAYER_Y + 48);
   ctx.restore();
 
   drawComboGauge();
@@ -142,3 +161,55 @@ function drawKillCounter() {
   ctx.fillText(`KILL ${turretKillCounter}/${turretKillCounterMax}`, PLAYER_X, y + h + 11);
   ctx.restore();
 }
+
+// --- プレイヤー描画・タレット・バースト・HP・コンボ・タレットUI・入力処理 ---
+// 必要な変数・関数をwindowにアタッチ
+window.drawPlayer = drawPlayer;
+function updatePlayerTurretAndBurst() {
+  // ...バースト処理本体...
+}
+window.updatePlayerTurretAndBurst = updatePlayerTurretAndBurst;
+window.comboLevel = comboLevel;
+window.comboCount = comboCount;
+window.maxComboLevel = maxComboLevel;
+window.playerHp = playerHp;
+window.PLAYER_MAX_HP = PLAYER_MAX_HP;
+window.playerTurretAngle = playerTurretAngle;
+window.playerTurretTargetAngle = playerTurretTargetAngle;
+window.playerTurretTurning = playerTurretTurning;
+window.playerTurretTurnSpeed = playerTurretTurnSpeed;
+window.playerBurstQueue = playerBurstQueue;
+window.playerBurstTimer = playerBurstTimer;
+window.playerBurstStep = playerBurstStep;
+function coolTurret() {
+  // ...本体...
+}
+window.coolTurret = coolTurret;
+function updateTurretHeat(deltaBurst) {
+  // ...本体...
+}
+window.updateTurretHeat = updateTurretHeat;
+window.turretHeat = turretHeat;
+window.turretHeatMax = turretHeatMax;
+window.turretHeatPerBurst = turretHeatPerBurst;
+window.turretCoolingPerFrame = turretCoolingPerFrame;
+window.turretOverheated = turretOverheated;
+window.drawComboGauge = drawComboGauge;
+window.drawTurretHeatGauge = drawTurretHeatGauge;
+window.drawKillCounter = drawKillCounter;
+window.turretKillCounter = turretKillCounter;
+window.turretKillCounterMax = turretKillCounterMax;
+window.turretKillCounterNextMul = turretKillCounterNextMul;
+window.turretUpgrades = turretUpgrades;
+window.passivePoints = passivePoints;
+window.showPassiveUpgradeUI = showPassiveUpgradeUI;
+window.passiveUpgradeSelectIdx = passiveUpgradeSelectIdx;
+window.passiveUpgradeList = passiveUpgradeList;
+window.passiveUpgradeParts = passiveUpgradeParts;
+window.showPassiveUpgradeMsg = showPassiveUpgradeMsg;
+window.passiveMsgTimer = passiveMsgTimer;
+window.drawPassiveUpgradeMsg = drawPassiveUpgradeMsg;
+window.showPassiveUpgradeLevelUpMessage = showPassiveUpgradeLevelUpMessage;
+
+// すべての変数・関数はwindow.で参照・代入
+// 例: window.playerHp, window.PLAYER_MAX_HP, window.comboLevel など
