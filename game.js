@@ -73,6 +73,9 @@ let playerBurstQueue = [];
 let playerBurstTimer = 0;
 let playerBurstStep = 0;
 
+// --- パッシブ強化UI 部位判定用グローバルデータ ---
+let passiveUpgradeParts = [];
+
 // --- レスポンシブ ---
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -276,25 +279,28 @@ function drawPassiveUpgradeUI() {
 
   ctx.font = "17px 'Fira Mono', Consolas, monospace";
   ctx.fillStyle = "#444";
-  ctx.fillText("矢印キーで部位選択、スペースで強化、Escで閉じる", CANVAS_W/2, bgY + 82);
+  ctx.fillText("矢印キー/マウスで部位選択、スペースで強化、Escで閉じる", CANVAS_W/2, bgY + 82);
 
   ctx.font = "bold 16px 'Fira Mono', Consolas, monospace";
   ctx.fillStyle = "#888";
   ctx.fillText(`パッシブポイント: ${passivePoints}`, CANVAS_W/2, bgY + 112);
 
   // タレット横から見た2D図
-  // 図の基準点
   const baseX = CANVAS_W/2, baseY = bgY + bgH/2 + 10;
 
-  // 部位座標
-  const parts = [
-    {   // 回路 (後部基板)
+  // 部位リストを都度初期化
+  passiveUpgradeParts = [
+    { // 回路: コアにくっついた縦長長方形（右側）
       key: "overclock",
-      x: baseX - 90, y: baseY - 15, w: 36, h: 18,
-      draw: (highlight) => {
+      type: "rect",
+      x: baseX + 28, y: baseY - 23, w: 22, h: 46,
+      contains(mx, my) {
+        return mx >= this.x && mx <= this.x+this.w && my >= this.y && my <= this.y+this.h;
+      },
+      draw: function(highlight) {
         ctx.save();
         ctx.beginPath();
-        ctx.rect(baseX - 108, baseY - 20, 36, 18);
+        ctx.rect(this.x, this.y, this.w, this.h);
         ctx.fillStyle = highlight ? "#aef" : "#e7f7ff";
         ctx.shadowColor = highlight ? "#3cf" : "#fff";
         ctx.shadowBlur = highlight ? 17 : 0;
@@ -308,17 +314,21 @@ function drawPassiveUpgradeUI() {
         ctx.font = "bold 12px 'Fira Mono', Consolas, monospace";
         ctx.fillStyle = "#2b8cae";
         ctx.textAlign = "center";
-        ctx.fillText("回路", baseX - 90, baseY - 28);
+        ctx.fillText("回路", this.x+this.w/2, this.y - 8);
         ctx.restore();
       }
     },
-    {   // 銃身 (砲身)
+    { // 銃身
       key: "cooling",
-      x: baseX + 58, y: baseY - 9, w: 60, h: 14,
-      draw: (highlight) => {
+      type: "rect",
+      x: baseX + 58, y: baseY - 16, w: 60, h: 14,
+      contains(mx, my) {
+        return mx >= this.x && mx <= this.x+this.w && my >= this.y && my <= this.y+this.h;
+      },
+      draw: function(highlight) {
         ctx.save();
         ctx.beginPath();
-        ctx.rect(baseX + 28, baseY - 16, 60, 14);
+        ctx.rect(this.x, this.y, this.w, this.h);
         ctx.fillStyle = highlight ? "#ffd686" : "#fff3c9";
         ctx.shadowColor = highlight ? "#ffe082" : "#fff";
         ctx.shadowBlur = highlight ? 15 : 0;
@@ -332,17 +342,21 @@ function drawPassiveUpgradeUI() {
         ctx.font = "bold 12px 'Fira Mono', Consolas, monospace";
         ctx.fillStyle = "#b08a4c";
         ctx.textAlign = "center";
-        ctx.fillText("銃身", baseX + 60, baseY - 22);
+        ctx.fillText("銃身", this.x + this.w/2, this.y - 8);
         ctx.restore();
       }
     },
-    {   // 供給 (給弾部下部)
+    { // 供給
       key: "capacity",
-      x: baseX - 10, y: baseY + 30, w: 32, h: 16,
-      draw: (highlight) => {
+      type: "rect",
+      x: baseX - 16, y: baseY + 24, w: 32, h: 16,
+      contains(mx, my) {
+        return mx >= this.x && mx <= this.x+this.w && my >= this.y && my <= this.y+this.h;
+      },
+      draw: function(highlight) {
         ctx.save();
         ctx.beginPath();
-        ctx.rect(baseX - 16, baseY + 24, 32, 16);
+        ctx.rect(this.x, this.y, this.w, this.h);
         ctx.fillStyle = highlight ? "#caffb0" : "#f2ffe0";
         ctx.shadowColor = highlight ? "#85e63b" : "#fff";
         ctx.shadowBlur = highlight ? 13 : 0;
@@ -356,17 +370,22 @@ function drawPassiveUpgradeUI() {
         ctx.font = "bold 12px 'Fira Mono', Consolas, monospace";
         ctx.fillStyle = "#5ea12c";
         ctx.textAlign = "center";
-        ctx.fillText("供給", baseX, baseY + 60);
+        ctx.fillText("供給", this.x + this.w/2, this.y + this.h + 15);
         ctx.restore();
       }
     },
-    {   // コア (本体中央)
+    { // コア
       key: "response",
+      type: "circle",
       x: baseX, y: baseY, r: 28,
-      draw: (highlight) => {
+      contains(mx, my) {
+        const dx = mx - this.x, dy = my - this.y;
+        return dx*dx + dy*dy <= this.r*this.r;
+      },
+      draw: function(highlight) {
         ctx.save();
         ctx.beginPath();
-        ctx.arc(baseX, baseY, 28, 0, Math.PI*2);
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
         ctx.fillStyle = highlight ? "#ffeacc" : "#fffbe7";
         ctx.shadowColor = highlight ? "#ff8a2f" : "#cab88a";
         ctx.shadowBlur = highlight ? 14 : 0;
@@ -380,7 +399,7 @@ function drawPassiveUpgradeUI() {
         ctx.font = "bold 13px 'Fira Mono', Consolas, monospace";
         ctx.fillStyle = "#b08a4c";
         ctx.textAlign = "center";
-        ctx.fillText("コア", baseX, baseY + 4);
+        ctx.fillText("コア", this.x, this.y + 4);
         ctx.restore();
       }
     }
@@ -396,13 +415,13 @@ function drawPassiveUpgradeUI() {
   ctx.fill();
   ctx.restore();
 
-  // 供給（下部）→回路（後部）→本体→砲身
-  parts[2].draw(passiveUpgradeSelectIdx === 2);
-  parts[0].draw(passiveUpgradeSelectIdx === 0);
-  parts[3].draw(passiveUpgradeSelectIdx === 3);
-  parts[1].draw(passiveUpgradeSelectIdx === 1);
+  // 供給（下部）→回路（右）→本体→砲身
+  passiveUpgradeParts[2].draw(passiveUpgradeSelectIdx === 2);
+  passiveUpgradeParts[0].draw(passiveUpgradeSelectIdx === 0);
+  passiveUpgradeParts[3].draw(passiveUpgradeSelectIdx === 3);
+  passiveUpgradeParts[1].draw(passiveUpgradeSelectIdx === 1);
 
-  // 選択チップ説明
+  // 選択中チップ説明
   const sel = passiveUpgradeList[passiveUpgradeSelectIdx];
   ctx.save();
   ctx.font = "bold 20px 'Fira Mono', Consolas, monospace";
@@ -421,6 +440,27 @@ function drawPassiveUpgradeUI() {
 
   ctx.restore();
 }
+
+// --- マウス操作によるパッシブ強化部位選択 ---
+canvas.addEventListener("mousedown", function(e) {
+  if (!showPassiveUpgradeUI) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+  for (let i = 0; i < passiveUpgradeParts.length; i++) {
+    if (passiveUpgradeParts[i].contains(mx, my)) {
+      passiveUpgradeSelectIdx = i;
+      // クリックで即強化したい場合は下記コメントアウトを外す
+      // if (passivePoints > 0) {
+      //   const key = passiveUpgradeList[passiveUpgradeSelectIdx].key;
+      //   turretUpgrades[key]++;
+      //   passivePoints--;
+      // }
+      break;
+    }
+  }
+});
 
 // --- パッシブレベルアップ告知 ---
 function drawPassiveUpgradeMsg() {
