@@ -821,7 +821,7 @@ class LaserChargerEnemy {
 // --- バースト発射用Bulletクラス拡張 ---
 // --- バースト発射用Bulletクラス（敵に当たった瞬間だけヒットして消える） ---
 class Bullet {
-  constructor(targetEnemy, sx = PLAYER_X, sy = PLAYER_Y, damage = 100) {
+  constructor(targetEnemy, sx = PLAYER_X, sy = PLAYER_Y, damage = 34) { // ★デフォルト攻撃力34に変更
     this.x = sx;
     this.y = sy;
     // ターゲットの位置に向けて発射
@@ -941,7 +941,7 @@ function updatePlayerTurretAndBurst() {
       const { enemy } = playerBurstQueue[0];
       const px = PLAYER_X + Math.cos(playerTurretAngle) * 26;
       const py = PLAYER_Y + Math.sin(playerTurretAngle) * 26;
-      let baseDmg = 100 * (1 + 0.02 * turretUpgrades.overclock);
+      let baseDmg = 34 * (1 + 0.02 * turretUpgrades.overclock); // ★攻撃力34に修正
       bullets.push(new Bullet(enemy, px, py, baseDmg));
       playerBurstStep++;
       if (playerBurstStep === 1) updateTurretHeat(burstNum);
