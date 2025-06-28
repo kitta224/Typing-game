@@ -288,7 +288,7 @@ function drawTurretHeatGauge() {
 
 // --- キルカウンターゲージ ---
 function drawKillCounter() {
-  // キルカウンター（細い角丸・ラベル重���・enemy色）
+  // キルカウンター（細い角丸・ラベル重ね・enemy色）
   const x = PLAYER_X - 54;
   const y = PLAYER_Y + 78;
   const w = 108;
@@ -555,7 +555,8 @@ class Enemy {
     this.progress = 0;
     this.x = sx;
     this.y = sy;
-    this.radius = (level === 0 ? 9 : 13) + Math.random() * 2 + (level > 0 ? 3 : 0);
+    // すべての敵の大きさを50%縮小
+    this.radius = ((level === 0 ? 9 : 13) + Math.random() * 2 + (level > 0 ? 3 : 0)) * 0.5;
     // HP倍率計算
     let hpMul = 1;
     if (level >= 1) hpMul *= 2.5;
@@ -670,7 +671,8 @@ class LaserChargerEnemy {
     this.progress = 0;
     this.x = sx;
     this.y = sy;
-    this.radius = 26;
+    // すべての敵の大きさを50%縮小
+    this.radius = 26 * 0.5;
     this.color = getEnemyColor();
     this.hp = Math.round(3 * Math.pow(1.1, phase - 1) * 100);
     this.maxHp = this.hp;
@@ -906,7 +908,6 @@ class Bullet {
     if (this.hit) return; // もう当たってる場合は何もしない
     this.x += this.vx;
     this.y += this.vy;
-
     for (let enemy of enemies) {
       if (enemy.dead) continue;
       const dist = Math.hypot(this.x - enemy.x, this.y - enemy.y);
@@ -916,7 +917,7 @@ class Bullet {
         this.hit = true; // 当たったら消える
         if (enemy.hp <= 0) {
           enemy.dead = true;
-          onEnemyKilled();
+          onEnemyKilled(enemy);
         }
         break; // どれか1体に当たったら以降は処理しない
       }
@@ -945,6 +946,44 @@ class Bullet {
 }
 
 
+// --- パーティクルエフェクト ---
+const enemyDeathParticles = [];
+function spawnEnemyDeathParticles(x, y, color) {
+  for (let i = 0; i < 12; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 2;
+    enemyDeathParticles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 18 + Math.random() * 8,
+      color,
+      size: 3 + Math.random() * 2
+    });
+  }
+}
+function updateEnemyDeathParticles() {
+  for (let p of enemyDeathParticles) {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= 0.92;
+    p.vy *= 0.92;
+    p.life--;
+  }
+  for (let i = enemyDeathParticles.length - 1; i >= 0; i--) {
+    if (enemyDeathParticles[i].life <= 0) enemyDeathParticles.splice(i, 1);
+  }
+}
+function drawEnemyDeathParticles() {
+  for (let p of enemyDeathParticles) {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life / 20);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    ctx.restore();
+  }
+}
+
 // --- update内の弾の扱い ---
 function update() {
   if (gameOver || !playing) return;
@@ -952,6 +991,7 @@ function update() {
   updatePlayerTurretAndBurst();
   enemies.forEach(e => e.update());
   bullets.forEach(b => b.update());
+  updateEnemyDeathParticles();
   // 弾は当たるか画面外に出るまで残す
   bullets = bullets.filter(b => b.isActive());
   for (let e of enemies) {
@@ -1064,10 +1104,12 @@ document.addEventListener("keydown", e => {
       if (enemy.type === "normal" && !enemy.isComplete() && !enemy.dead) {
         const expected = enemy.word[enemy.progress]?.toLowerCase();
         if (key.toLowerCase() === expected) {
+          if (window.SFX) SFX.play(Math.random() < 0.5 ? 'type1' : 'type2');
           enemy.progress++;
           enemy.recentMiss = false;
           matchedAny = true;
           if (!enemy.dead && enemy.isComplete()) {
+            if (window.SFX) SFX.play('kill');
             const dx = enemy.x - PLAYER_X;
             const dy = enemy.y - PLAYER_Y;
             let angle = Math.atan2(dy, dx);
@@ -1080,6 +1122,7 @@ document.addEventListener("keydown", e => {
             enemy.progress = 0;
           }
         } else if (enemy.progress > 0) {
+          if (window.SFX) SFX.play('miss');
           enemy.progress = 0;
           enemy.recentMiss = true;
         }
@@ -1088,19 +1131,23 @@ document.addEventListener("keydown", e => {
       if (enemy.type === "laser" && enemy.state === "fire" && enemy.laserActive && !enemy.dead) {
         const expected = enemy.laserWord[enemy.laserProgress]?.toLowerCase();
         if (key.toLowerCase() === expected) {
+          if (window.SFX) SFX.play(Math.random() < 0.5 ? 'type1' : 'type2');
           enemy.laserProgress++;
           matchedAny = true;
           // 全部タイプし終えたらレーザーを止める
           if (enemy.laserProgress >= enemy.laserWord.length) {
+            if (window.SFX) SFX.play('kill');
             enemy.laserActive = false;
             enemy.dead = true;
           }
         } else if (enemy.laserProgress > 0) {
+          if (window.SFX) SFX.play('miss');
           enemy.laserProgress = 0;
         }
       }
     }
     if (!matchedAny) {
+      if (window.SFX) SFX.play('miss');
       comboLevel = 0;
       comboCount = 0;
       for (let enemy of enemies) {
@@ -1113,6 +1160,7 @@ document.addEventListener("keydown", e => {
         }
       }
     } else {
+      if (window.SFX && comboCount === 9) SFX.play('combo');
       comboCount++;
       if (comboCount >= 10) {
         comboLevel++;
@@ -1124,7 +1172,9 @@ document.addEventListener("keydown", e => {
 });
 
 // --- 敵撃破時 ---
-function onEnemyKilled() {
+function onEnemyKilled(enemy) {
+  // パーティクル生成
+  spawnEnemyDeathParticles(enemy.x, enemy.y, enemy.color || getEnemyColor());
   turretKillCounter++;
   if (turretKillCounter >= turretKillCounterMax) {
     turretKillCounter = 0;
@@ -1153,6 +1203,7 @@ function spawnEnemy() {
     sx = -40;
     sy = Math.random() * CANVAS_H;
   }
+  if (window.SFX) SFX.play('enemyAppear');
   if (phase === 1) {
     const word = words[Math.floor(Math.random() * words.length)];
     enemies.push(new Enemy(word, sx, sy, 0));
@@ -1233,6 +1284,7 @@ function update() {
   updatePlayerTurretAndBurst();
   enemies.forEach(e => e.update());
   bullets.forEach(b => b.update());
+  updateEnemyDeathParticles();
   // 弾は当たるか画面外に出るまで残す
   bullets = bullets.filter(b => b.isActive());
   for (let e of enemies) {
@@ -1261,6 +1313,8 @@ function update() {
 
 function draw() {
   ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  // パーティクル描画
+  drawEnemyDeathParticles();
 
   // 通常UI（スコア・フェーズ）描画
   ctx.save();
@@ -1404,4 +1458,8 @@ window.onload = () => {
   document.head.appendChild(link);
   draw();
 };
-gameLoop();
+
+// --- 効果音 ---
+const sfxScript = document.createElement('script');
+sfxScript.src = 'sfx.js';
+document.head.appendChild(sfxScript);
