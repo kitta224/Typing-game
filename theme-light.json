@@ -1,0 +1,8 @@
+{
+  "background": "#ffffff",
+  "text": "#222222",
+  "player": "#1976d2",
+  "enemy": "#e5e0d8",
+  "bullet": "#388e3c",
+  "accent": "#ffb3b3"
+}

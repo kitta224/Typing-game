@@ -10,10 +10,48 @@ const titleScreen = document.getElementById("title-screen");
 const infoElem = document.getElementById("info");
 const wordsetSelect = document.getElementById("wordset-select");
 
-const ENEMY_COLORS = [
-  "#cab88a", "#d2c295", "#b08a4c", "#c2a974", "#dfc99c", "#a88d58"
-];
-const LASER_ENEMY_COLOR = "#90d7f1";
+// --- テーマ管理 ---
+let currentThemeName = "light";
+let themeColors = {
+  background: "#f5f5f5",
+  text: "#222222",
+  player: "#1976d2",
+  enemy: "#d32f2f",
+  bullet: "#388e3c"
+};
+function loadTheme(themeName) {
+  fetch(`theme-${themeName}.json`)
+    .then(res => res.json())
+    .then(json => {
+      themeColors = json;
+      currentThemeName = themeName;
+    })
+    .catch(() => {
+      // 読み込み失敗時はデフォルト
+      themeColors = {
+        background: "#f5f5f5",
+        text: "#222222",
+        player: "#1976d2",
+        enemy: "#d32f2f",
+        bullet: "#388e3c"
+      };
+      currentThemeName = "light";
+    });
+}
+
+function getEnemyColor() {
+  return themeColors.enemy;
+}
+function getLaserEnemyColor() {
+  return themeColors.enemy;
+}
+function getAccentColor() {
+  return themeColors.accent;
+}
+function getTextColor() {
+  // ダークテーマ時はアクセント色、ライトは従来色
+  return currentThemeName === "dark" ? themeColors.accent : "#3e2c16";
+}
 const PLAYER_COLOR = "#b08a4c";
 const PLAYER_MAX_HP = 500; // 100倍化
 
@@ -164,22 +202,13 @@ function drawPlayer() {
   ctx.fill();
   ctx.restore();
 
-  // HPバー
-  const hpBarW = 160, hpBarH = 16;
+  // HPは数値のみ表示
   ctx.save();
-  ctx.globalAlpha = 0.93;
-  ctx.fillStyle = "#f2e5c3";
-  ctx.fillRect(PLAYER_X - hpBarW / 2, PLAYER_Y + 40, hpBarW, hpBarH);
-  ctx.fillStyle = "#b08a4c";
-  ctx.fillRect(PLAYER_X - hpBarW / 2, PLAYER_Y + 40, hpBarW * (playerHp / PLAYER_MAX_HP), hpBarH);
-  ctx.strokeStyle = "#cab88a";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(PLAYER_X - hpBarW / 2, PLAYER_Y + 40, hpBarW, hpBarH);
-  ctx.font = "bold 15px 'Fira Mono', Consolas, monospace";
+  ctx.font = "bold 18px 'Fira Mono', Consolas, monospace";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillStyle = "#3e2c16";
-  ctx.fillText(`HP: ${playerHp} / ${PLAYER_MAX_HP}`, PLAYER_X, PLAYER_Y + 48);
+  ctx.fillStyle = getTextColor();
+  ctx.fillText(`${playerHp}/${PLAYER_MAX_HP}`, PLAYER_X, PLAYER_Y + 38);
   ctx.restore();
 
   drawComboGauge();
@@ -189,75 +218,106 @@ function drawPlayer() {
 
 // --- コンボゲージ ---
 function drawComboGauge() {
+  // コンボゲージ（細い角丸・ラベル重ね・enemy色）
   const gaugeWidth = 90;
-  const gaugeHeight = 14;
+  const gaugeHeight = 5;
   const x = PLAYER_X - gaugeWidth / 2;
-  const y = PLAYER_Y + 70;
+  const y = PLAYER_Y + 54;
+  const r = 2.5;
   ctx.save();
-  ctx.globalAlpha = 0.92;
-  ctx.strokeStyle = "#b08a4c";
-  ctx.lineWidth = 2;
-  ctx.fillStyle = "#f2e5c3";
-  ctx.fillRect(x, y, gaugeWidth, gaugeHeight);
-  ctx.strokeRect(x, y, gaugeWidth, gaugeHeight);
-  const progress = comboCount / 10;
-  ctx.fillStyle = "#eeb800";
-  ctx.fillRect(x, y, gaugeWidth * Math.min(1, progress), gaugeHeight);
-  ctx.font = "bold 12px 'Fira Mono', Consolas, monospace";
-  ctx.fillStyle = "#8c6600";
+  ctx.globalAlpha = 1.0;
+  ctx.fillStyle = getEnemyColor();
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + gaugeWidth - r, y);
+  ctx.arcTo(x + gaugeWidth, y, x + gaugeWidth, y + gaugeHeight, r);
+  ctx.lineTo(x + gaugeWidth, y + gaugeHeight - r);
+  ctx.arcTo(x + gaugeWidth, y + gaugeHeight, x + gaugeWidth - r, y + gaugeHeight, r);
+  ctx.lineTo(x + r, y + gaugeHeight);
+  ctx.arcTo(x, y + gaugeHeight, x, y + gaugeHeight - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+  ctx.clip();
+  ctx.fillRect(x, y, gaugeWidth * Math.min(1, comboCount / 10), gaugeHeight);
+  ctx.restore();
+  // ラベル重ね
+  ctx.save();
+  ctx.font = "13px 'Fira Mono', Consolas, monospace";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(`COMBO Lv.${comboLevel}`, PLAYER_X, y + gaugeHeight / 2);
+  ctx.fillStyle = getTextColor();
+  ctx.fillText("COMBO", PLAYER_X, y + gaugeHeight / 2);
   ctx.restore();
 }
 
 // --- オーバーヒートゲージ ---
 function drawTurretHeatGauge() {
+  // オーバーヒートゲージ（細い角丸・ラベル重ね・enemy色）
   const x = PLAYER_X - 54;
-  const y = PLAYER_Y + 90;
+  const y = PLAYER_Y + 66;
   const w = 108;
-  const h = 8;
+  const h = 5;
+  const r = 2.5;
   ctx.save();
-  ctx.globalAlpha = 0.87;
-  ctx.strokeStyle = "#b08a4c";
-  ctx.lineWidth = 2;
-  ctx.fillStyle = "#f2e5c3";
-  ctx.fillRect(x, y, w, h);
-  ctx.strokeRect(x, y, w, h);
-
-  ctx.fillStyle = turretOverheated ? "#ff2e2e" : "#f7a046";
+  ctx.globalAlpha = 1.0;
+  ctx.fillStyle = getEnemyColor();
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+  ctx.clip();
   ctx.fillRect(x, y, w * turretHeat / turretHeatMax, h);
   ctx.restore();
-
+  // ラベル重ね
   ctx.save();
-  ctx.font = "bold 11px 'Fira Mono', Consolas, monospace";
-  ctx.fillStyle = turretOverheated ? "#ff2e2e" : "#8c6600";
+  ctx.font = "13px 'Fira Mono', Consolas, monospace";
   ctx.textAlign = "center";
-  ctx.fillText(turretOverheated ? "OVERHEAT!" : "HEAT", PLAYER_X, y + h + 11);
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = getTextColor();
+  ctx.fillText("HEAT", PLAYER_X, y + h / 2);
   ctx.restore();
 }
 
 // --- キルカウンターゲージ ---
 function drawKillCounter() {
+  // キルカウンター（細い角丸・ラベル重���・enemy色）
   const x = PLAYER_X - 54;
-  const y = PLAYER_Y + 115;
+  const y = PLAYER_Y + 78;
   const w = 108;
-  const h = 8;
+  const h = 5;
+  const r = 2.5;
   ctx.save();
-  ctx.globalAlpha = 0.92;
-  ctx.strokeStyle = "#b08a4c";
-  ctx.lineWidth = 2;
-  ctx.fillStyle = "#cce0a4";
-  ctx.fillRect(x, y, w, h);
-  ctx.strokeRect(x, y, w, h);
-
-  ctx.fillStyle = "#5ea12c";
+  ctx.globalAlpha = 1.0;
+  ctx.fillStyle = getEnemyColor();
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+  ctx.clip();
   ctx.fillRect(x, y, w * (turretKillCounter / turretKillCounterMax), h);
-
-  ctx.font = "bold 11px 'Fira Mono', Consolas, monospace";
-  ctx.fillStyle = "#365a18";
+  ctx.restore();
+  // ラベル重ね
+  ctx.save();
+  ctx.font = "13px 'Fira Mono', Consolas, monospace";
   ctx.textAlign = "center";
-  ctx.fillText(`KILL ${turretKillCounter}/${turretKillCounterMax}`, PLAYER_X, y + h + 11);
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = getTextColor();
+  ctx.fillText("KILL", PLAYER_X, y + h / 2);
   ctx.restore();
 }
 
@@ -428,7 +488,7 @@ function drawPassiveUpgradeUI() {
   const sel = passiveUpgradeList[passiveUpgradeSelectIdx];
   ctx.save();
   ctx.font = "bold 20px 'Fira Mono', Consolas, monospace";
-  ctx.fillStyle = "#ff8a2f";
+  ctx.fillStyle = getAccentColor();
   ctx.textAlign = "center";
   ctx.fillText(sel.title, CANVAS_W/2, bgY + bgH - 74);
 
@@ -495,7 +555,7 @@ class Enemy {
     this.progress = 0;
     this.x = sx;
     this.y = sy;
-    this.radius = 13 + Math.random() * 2 + (level > 0 ? 3 : 0);
+    this.radius = (level === 0 ? 9 : 13) + Math.random() * 2 + (level > 0 ? 3 : 0);
     // HP倍率計算
     let hpMul = 1;
     if (level >= 1) hpMul *= 2.5;
@@ -511,7 +571,7 @@ class Enemy {
     } else {
       this.speed = (0.18 + Math.random() * 0.09) * 0.33;
     }
-    this.color = ENEMY_COLORS[Math.floor(Math.random() * ENEMY_COLORS.length)];
+    this.color = getEnemyColor();
     this.dead = false;
     this.recentMiss = false;
     const dx = PLAYER_X - this.x;
@@ -589,10 +649,10 @@ class Enemy {
     ctx.font = "bold 15px 'Fira Mono', Consolas, monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#d2c295";
-    ctx.fillText(this.word.slice(0, this.progress), this.x - ctx.measureText(this.remainingWord).width / 2, this.y - this.radius - 12);
-    ctx.fillStyle = "#3e2c16";
-    ctx.fillText(this.remainingWord, this.x + ctx.measureText(this.word.slice(0, this.progress)).width / 2, this.y - this.radius - 12);
+    // ctx.fillStyle = "#d2c295";
+    // ctx.fillText(this.word.slice(0, this.progress), this.x - ctx.measureText(this.remainingWord).width / 2, this.y - this.radius - 12);
+    ctx.fillStyle = getTextColor();
+    ctx.fillText(this.remainingWord, this.x, this.y - this.radius - 12);
   }
   isComplete() {
     return this.progress >= this.word.length;
@@ -611,7 +671,7 @@ class LaserChargerEnemy {
     this.x = sx;
     this.y = sy;
     this.radius = 26;
-    this.color = LASER_ENEMY_COLOR;
+    this.color = getEnemyColor();
     this.hp = Math.round(3 * Math.pow(1.1, phase - 1) * 100);
     this.maxHp = this.hp;
     const dx = PLAYER_X - this.x;
@@ -806,16 +866,16 @@ class LaserChargerEnemy {
       ctx.font = "bold 20px 'Fira Mono', Consolas, monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = "#006d93";
-      ctx.fillText(
-        this.laserWord.slice(0, this.laserProgress),
-        this.laserX - ctx.measureText(this.laserWord.slice(this.laserProgress)).width / 2,
-        this.laserY
-      );
-      ctx.fillStyle = "#1b3c47";
+      // ctx.fillStyle = "#006d93";
+      // ctx.fillText(
+      //   this.laserWord.slice(0, this.laserProgress),
+      //   this.laserX - ctx.measureText(this.laserWord.slice(this.laserProgress)).width / 2,
+      //   this.laserY
+      // );
+      ctx.fillStyle = getTextColor();
       ctx.fillText(
         this.laserWord.slice(this.laserProgress),
-        this.laserX + ctx.measureText(this.laserWord.slice(0, this.laserProgress)).width / 2,
+        this.laserX,
         this.laserY
       );
       ctx.restore();
@@ -965,7 +1025,7 @@ function updatePlayerTurretAndBurst() {
 // --- パッシブ強化UI 入力 ---
 document.addEventListener("keydown", e => {
   // --- 一時停止ON/OFF ---
-  if (e.key === "Escape" && !showPassiveUpgradeUI && !showPassiveUpgradeMsg && playing && !gameOver) {
+  if (e.key === "Escape" && !showPassiveUpgradeUI && !showPassiveUpgradeMsg && !gameOver) {
     isPaused = !isPaused;
     return;
   }
@@ -996,10 +1056,11 @@ document.addEventListener("keydown", e => {
 
   // --- レーザー迎撃や本体攻撃など省略 ---
 
-  // --- 通常敵のタイピング判定（全敵のprogressをチェックし完了時は単語入替） ---
+  // --- 通常敵・レーザー敵のタイピング判定 ---
   if (key.length === 1 && key.match(/[a-zA-Z]/i)) {
     let matchedAny = false;
     for (let enemy of enemies) {
+      // 通常敵
       if (enemy.type === "normal" && !enemy.isComplete() && !enemy.dead) {
         const expected = enemy.word[enemy.progress]?.toLowerCase();
         if (key.toLowerCase() === expected) {
@@ -1023,6 +1084,21 @@ document.addEventListener("keydown", e => {
           enemy.recentMiss = true;
         }
       }
+      // レーザー敵のレーザー文字
+      if (enemy.type === "laser" && enemy.state === "fire" && enemy.laserActive && !enemy.dead) {
+        const expected = enemy.laserWord[enemy.laserProgress]?.toLowerCase();
+        if (key.toLowerCase() === expected) {
+          enemy.laserProgress++;
+          matchedAny = true;
+          // 全部タイプし終えたらレーザーを止める
+          if (enemy.laserProgress >= enemy.laserWord.length) {
+            enemy.laserActive = false;
+            enemy.dead = true;
+          }
+        } else if (enemy.laserProgress > 0) {
+          enemy.laserProgress = 0;
+        }
+      }
     }
     if (!matchedAny) {
       comboLevel = 0;
@@ -1031,6 +1107,9 @@ document.addEventListener("keydown", e => {
         if (enemy.type === "normal" && !enemy.isComplete() && !enemy.dead) {
           enemy.progress = 0;
           enemy.recentMiss = true;
+        }
+        if (enemy.type === "laser" && enemy.state === "fire" && enemy.laserActive && !enemy.dead) {
+          enemy.laserProgress = 0;
         }
       }
     } else {
@@ -1212,16 +1291,16 @@ function draw() {
   if (isPaused) {
     ctx.save();
     ctx.globalAlpha = 0.85;
-    ctx.fillStyle = "#f9f8ec";
+    ctx.fillStyle = themeColors.background;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     ctx.globalAlpha = 1;
     ctx.font = "bold 60px 'Fira Mono', Consolas, monospace";
-    ctx.fillStyle = "#b08a4c";
+    ctx.fillStyle = getAccentColor();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("PAUSED", CANVAS_W / 2, CANVAS_H / 2 - 30);
     ctx.font = "bold 28px 'Fira Mono', Consolas, monospace";
-    ctx.fillStyle = "#938066";
+    ctx.fillStyle = themeColors.text;
     ctx.fillText("ESCキーで再開", CANVAS_W / 2, CANVAS_H / 2 + 32);
     ctx.restore();
     return;
@@ -1246,7 +1325,7 @@ function gameLoop(timestamp) {
   if (!lastUpdateTime) lastUpdateTime = timestamp;
   const elapsed = timestamp - lastUpdateTime;
   if (elapsed >= updateInterval) {
-    if (playing && !gameOver && !showPassiveUpgradeUI) {
+    if (playing && !gameOver && !showPassiveUpgradeUI && !isPaused) {
       spawnTimer++;
       if (spawnTimer > Math.round(spawnInterval / 0.66)) {
         spawnEnemy();
@@ -1299,6 +1378,30 @@ function startGame() {
 window.onload = () => {
   setWordsBySelected();
   startBtn.style.display = "inline-block";
+  // テーマ初期化
+  loadTheme("light");
+  // テーマ切り替えボタン
+  const themeFlipBtn = document.getElementById("theme-flip-btn");
+  if (themeFlipBtn) {
+    themeFlipBtn.onclick = function() {
+      const nextTheme = (currentThemeName === "light") ? "dark" : "light";
+      loadTheme(nextTheme);
+      // CSSテーマも切り替え
+      const oldLink = document.getElementById("theme-css-link");
+      if (oldLink) oldLink.remove();
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.id = "theme-css-link";
+      link.href = `theme-${nextTheme}.css`;
+      document.head.appendChild(link);
+    };
+  }
+  // 初回CSSテーマ適用
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.id = "theme-css-link";
+  link.href = `theme-light.css`;
+  document.head.appendChild(link);
   draw();
 };
 gameLoop();

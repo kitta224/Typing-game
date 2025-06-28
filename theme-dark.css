@@ -1,0 +1,39 @@
+/* theme-dark.css: ダークテーマ用スタイル */
+html, body {
+  background: #222 !important;
+  color: #f5f5f5 !important;
+}
+body {
+  min-height: 100vh;
+  text-align: center;
+}
+#restart-btn, #start-btn {
+  background: #333;
+  color: #f5f5f5;
+  border: 2px solid #444;
+}
+#restart-btn:hover, #start-btn:hover {
+  background: #444;
+  color: #90caf9;
+}
+#title-screen {
+  background: rgba(34,34,34,0.98);
+}
+#title-main {
+  color: #90caf9;
+}
+#title-desc {
+  color: #b0b0b0;
+}
+#game {
+  background: #222;
+  border: 2px solid #444;
+}
+.wordset-select {
+  background: #222;
+  color: #f5f5f5;
+  border: 1.5px solid #444;
+}
+.wordset-select:focus {
+  border-color: #90caf9;
+}
