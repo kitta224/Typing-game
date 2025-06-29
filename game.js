@@ -1398,6 +1398,8 @@ startBtn.onclick = function() { startGame(); };
 window.addEventListener("resize", () => { if (playing) resizeCanvas(); });
 
 function startGame() {
+  // 効果音ロードが完了していなければ開始しない
+  if (!window.SFXReady) return;
   setWordsBySelected();
   titleScreen.style.display = "none";
   scoreElem.style.display = "none";
@@ -1462,4 +1464,12 @@ window.onload = () => {
 // --- 効果音 ---
 const sfxScript = document.createElement('script');
 sfxScript.src = 'sfx.js';
+window.SFXReady = false;
+sfxScript.onload = function() {
+  window.SFXReady = true;
+  // 効果音ロード後にスタートボタンを有効化
+  if (startBtn) startBtn.disabled = false;
+};
 document.head.appendChild(sfxScript);
+// スタートボタンはロード完了まで無効化
+if (startBtn) startBtn.disabled = true;
