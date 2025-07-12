@@ -6,6 +6,7 @@ const ctx = canvas.getContext("2d");
 const scoreElem = document.getElementById("score");
 const restartBtn = document.getElementById("restart-btn");
 const startBtn = document.getElementById("start-btn");
+const themeFlipBtn = document.getElementById("themeflip-btn");
 const titleScreen = document.getElementById("title-screen");
 const infoElem = document.getElementById("info");
 const wordsetSelect = document.getElementById("wordset-select");
@@ -25,6 +26,17 @@ function loadTheme(themeName) {
     .then(json => {
       themeColors = json;
       currentThemeName = themeName;
+      // CSSも切り替え
+      if (themeName === 'dark') {
+        document.body.classList.add('dark-theme');
+        document.body.classList.remove('light-theme');
+        // 追加: ダークCSSを読み込む
+        setThemeCss('theme-dark.css');
+      } else {
+        document.body.classList.add('light-theme');
+        document.body.classList.remove('dark-theme');
+        setThemeCss('theme-light.css');
+      }
     })
     .catch(() => {
       // 読み込み失敗時はデフォルト
@@ -36,8 +48,37 @@ function loadTheme(themeName) {
         bullet: "#388e3c"
       };
       currentThemeName = "light";
+      document.body.classList.add('light-theme');
+      document.body.classList.remove('dark-theme');
+      setThemeCss('theme-light.css');
     });
 }
+
+// テーマCSS切り替え用
+function setThemeCss(href) {
+  let id = 'theme-css';
+  let link = document.getElementById(id);
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.id = id;
+    document.head.appendChild(link);
+  }
+  link.href = href;
+}
+
+// テーマ切替ボタン
+if (themeFlipBtn) {
+  themeFlipBtn.onclick = function() {
+    const next = (currentThemeName === 'light') ? 'dark' : 'light';
+    loadTheme(next);
+  };
+}
+
+// 初期テーマ適用
+window.addEventListener('DOMContentLoaded', function() {
+  loadTheme(currentThemeName);
+});
 
 function getEnemyColor() {
   return themeColors.enemy;
