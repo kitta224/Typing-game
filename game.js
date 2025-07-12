@@ -59,6 +59,41 @@ let PLAYER_X = 0, PLAYER_Y = 0, CANVAS_W = 0, CANVAS_H = 0;
 let playerHp = PLAYER_MAX_HP;
 let enemies = [];
 let bullets = [];
+let fragments = []; // 破片エフェクト用
+// --- 破片エフェクトクラス ---
+class Fragment {
+  constructor(x, y, color) {
+    this.x = x;
+    this.y = y;
+    this.size = 3 + Math.random() * 3;
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 2.5;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+    this.life = 22 + Math.random() * 12;
+    this.color = color || '#cab88a';
+    this.alpha = 1;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vx *= 0.92;
+    this.vy *= 0.92;
+    this.life--;
+    this.alpha = Math.max(0, this.life / 28);
+  }
+  draw() {
+    if (this.life <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = this.alpha * 0.7;
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+    ctx.restore();
+  }
+  isAlive() {
+    return this.life > 0;
+  }
+}
 let score = 0;
 let gameOver = false;
 let spawnTimer = 0;
@@ -916,7 +951,7 @@ class Bullet {
         this.hit = true; // 当たったら消える
         if (enemy.hp <= 0) {
           enemy.dead = true;
-          onEnemyKilled();
+          onEnemyKilled(enemy);
         }
         break; // どれか1体に当たったら以降は処理しない
       }
@@ -1124,7 +1159,14 @@ document.addEventListener("keydown", e => {
 });
 
 // --- 敵撃破時 ---
-function onEnemyKilled() {
+function onEnemyKilled(enemy) {
+  // 破片エフェクト生成
+  if (enemy && enemy.x !== undefined && enemy.y !== undefined) {
+    const color = enemy.color || '#cab88a';
+    for (let i = 0; i < 18; i++) {
+      fragments.push(new Fragment(enemy.x, enemy.y, color));
+    }
+  }
   turretKillCounter++;
   if (turretKillCounter >= turretKillCounterMax) {
     turretKillCounter = 0;
@@ -1233,8 +1275,10 @@ function update() {
   updatePlayerTurretAndBurst();
   enemies.forEach(e => e.update());
   bullets.forEach(b => b.update());
+  fragments.forEach(f => f.update());
   // 弾は当たるか画面外に出るまで残す
   bullets = bullets.filter(b => b.isActive());
+  fragments = fragments.filter(f => f.isAlive());
   for (let e of enemies) {
     if (e.dead && !e.counted) {
       score++;
@@ -1276,10 +1320,11 @@ function draw() {
   ctx.fillText(`PHASE: ${phase}`, CANVAS_W - 32, 26);
   ctx.restore();
 
-  // プレイヤー・敵・弾を常に描画する
+  // プレイヤー・敵・弾・破片を常に描画する
   drawPlayer();
   enemies.forEach(e => e.draw());
   bullets.forEach(b => b.draw());
+  fragments.forEach(f => f.draw());
   drawPassiveUpgradeMsg();
 
   // パッシブ強化UIがある場合は優先的に最前面に描画
